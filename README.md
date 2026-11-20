@@ -25,7 +25,7 @@ Reading CPU temperature on Windows needs a kernel driver. Rather than shipping o
 ## Setup
 
 1. Install Python 3 (with tkinter — the default python.org installer includes it).
-2. Run HWiNFO in *Sensors-only* mode. In its settings → **HWiNFO Gadget** tab, tick **Enable reporting to Gadget**, then tick **Report value in Gadget** on **CPU Package** (and optionally your GPU temperature).
+2. Run HWiNFO in *Sensors-only* mode. In its settings → **HWiNFO Gadget** tab, tick **Enable reporting to Gadget**, then tick **Report value in Gadget** on **CPU Package** and **Core Max** (and optionally GPU Hot Spot). The widget shows the **hottest** reported CPU and GPU value, and ignores non-temperature values. HWiNFO set to °F is handled automatically.
 3. Run the widget without a console window:
    ```powershell
    pythonw temp_widget.pyw
