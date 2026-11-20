@@ -64,10 +64,20 @@ def read_hwinfo():
             except OSError:
                 break
             try:
-                out.append((str(label), float(str(raw).replace(",", "."))))
-            except ValueError:
-                pass
+                shown = str(winreg.QueryValueEx(key, f"Value{i}")[0])
+            except OSError:
+                shown = ""
             i += 1
+            # keep temperatures only (skip power, clocks, usage, etc.)
+            if shown and "°" not in shown and not shown.strip().endswith(("C", "F")):
+                continue
+            try:
+                v = float(str(raw).replace(",", "."))
+            except ValueError:
+                continue
+            if "°F" in shown:
+                v = (v - 32) * 5 / 9  # HWiNFO set to Fahrenheit: normalise to °C
+            out.append((str(label), v))
     return out
 
 
@@ -82,24 +92,20 @@ def read_nvidia_gpu():
 
 
 def pick_temps():
-    """Return dict with 'CPU' and 'GPU' temps (or None)."""
-    vals = read_hwinfo()
-    cpu = gpu = None
-    for label, v in vals:
-        l = label.lower()
-        if cpu is None and ("cpu package" in l or "cpu (tctl" in l or l.startswith("cpu")):
-            cpu = v
-        elif gpu is None and "gpu" in l and "hot spot" not in l:
-            gpu = v
-    if cpu is None:
-        # any core / package reading
-        for label, v in vals:
-            if "core" in label.lower() or "package" in label.lower():
-                cpu = v
-                break
-    if gpu is None:
-        gpu = read_nvidia_gpu()
-    return {"CPU": cpu, "GPU": gpu}
+    """Return dict with the HIGHEST reported 'CPU' and 'GPU' temps (or None).
+
+    Every temperature you tick "Report value in Gadget" on counts: GPU-labelled
+    ones (incl. hot spot) go to GPU, everything else (package, cores, core max,
+    CPU) goes to CPU. The widget shows the hottest of each group.
+    """
+    cpu_vals, gpu_vals = [], []
+    for label, v in read_hwinfo():
+        (gpu_vals if "gpu" in label.lower() else cpu_vals).append(v)
+    nv = read_nvidia_gpu()
+    if nv is not None:
+        gpu_vals.append(nv)
+    return {"CPU": max(cpu_vals) if cpu_vals else None,
+            "GPU": max(gpu_vals) if gpu_vals else None}
 
 
 class Widget:
